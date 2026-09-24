@@ -1,27 +1,142 @@
-<h3>Google Sheet에서 리스트를 받아서 구입도서목록을 보여줌</h3>
-<h3>실시간 검색 기능(Search Bar)을 추가하여 제목, 저자, 출판사, 카테고리별로 즉시 검색</h3>
-<br>
-<li>카테고리 드롭다운 필터: [전체 보기 ▼] 누르면 국내도서>소설, 컴퓨터/IT, 외국도서 등 카테고리별로만 모아보기</li>
-<li>재고/대여 상태 필터: 구글 시트의 '재고상태'나 '독서 상태(읽는 중 / 완독)' 컬럼을 읽어와 완독한 책만 골라보기.</li>
-<li>정렬 기능: 출판일순, 가격순, 평점 높은 순 정렬</li>
-
-<!-- 상단 검색창 -->
-<input type="text" id="searchInput" onkeyup="searchBooks()" placeholder="책 제목이나 저자 검색...">
-
-<script>
-function searchBooks() {
-  // 1. 사용자가 입력한 검색어 가져오기
-  let filter = document.getElementById('searchInput').value.toLowerCase();
-  let bookCards = document.getElementsByClassName('book-card');
-
-  // 2. 검색어가 포함 안 된 책은 화면에서 숨기기
-  for (let i = 0; i < bookCards.length; i++) {
-    let title = bookCards[i].innerText.toLowerCase();
-    if (title.includes(filter)) {
-      bookCards[i].style.display = ""; // 보여주기
-    } else {
-      bookCards[i].style.display = "none"; // 숨기기
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개인 서재 검색</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 0 20px;
+      color: #333;
     }
-  }
-}
-</script>
+    .search-container {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .search-input {
+      width: 100%;
+      max-width: 500px;
+      padding: 14px 20px;
+      font-size: 16px;
+      border: 1px solid #dfe1e5;
+      border-radius: 24px;
+      outline: none;
+      box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+    }
+    .status {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .book-list {
+      list-style: none;
+      padding: 0;
+    }
+    .book-item {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .book-title {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .book-author {
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="search-container">
+    <h2>📚 대발님의 개인 서재</h2>
+    <!-- 구글 스타일 미니멀 검색창 -->
+    <input type="text" id="searchInput" class="search-input" placeholder="책 제목, 저자 검색..." oninput="filterBooks()">
+  </div>
+
+  <div id="status" class="status">도서 데이터를 불러오는 중...</div>
+  <ul id="bookList" class="book-list"></ul>
+
+  <script>
+    // 1. 대발님의 구글 시트 '웹에 게시' CSV URL을 아래에 넣어주세요.
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?gid=1428468593&single=true&output=csv';
+
+    let booksData = [];
+
+    // 2. CSV 데이터를 받아와서 메모리에 저장하는 함수
+    async function loadBooks() {
+      try {
+        const response = await fetch(CSV_URL);
+        const data = await response.text();
+        
+        // CSV 줄바꿈 단위로 분리
+        const rows = data.split('\n');
+        
+        // CSV의 첫 줄(헤더)을 제외하고 데이터 추출
+        booksData = rows.slice(1).map(row => {
+          // 단순 쉼표 분리 (추후 따옴표 처리 필요시 파싱 개선)
+          const cols = row.split(',');
+          return {
+            title: cols[2] ? cols[2].trim() : '',
+            author: cols[3] ? cols[3].trim() : '',
+            publisher: cols[4] ? cols[4].trim() : ''
+          };
+        }).filter(book => book.title !== ''); // 빈 줄 제거
+
+        document.getElementById('status').innerText = `총 ${booksData.length}권의 도서가 로드되었습니다.`;
+        renderList(booksData);
+      } catch (error) {
+        document.getElementById('status').innerText = '데이터를 불러오는데 실패했습니다. CSV URL을 확인해주세요.';
+        console.error(error);
+      }
+    }
+
+    // 3. 화면에 도서 리스트를 출력하는 함수
+    function renderList(list) {
+      const ul = document.getElementById('bookList');
+      ul.innerHTML = '';
+
+      if (list.length === 0) {
+        ul.innerHTML = '<li style="text-align:center; color:#888;">검색 결과가 없습니다.</li>';
+        return;
+      }
+
+      list.forEach(book => {
+        const li = document.createElement('li');
+        li.className = 'book-item';
+        li.innerHTML = `
+          <div>
+            <div class="book-title">${book.title}</div>
+            <div class="book-author">${book.author}</div>
+          </div>
+          <div style="color: #888; font-size: 12px;">${book.publisher}</div>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    // 4. 검색창 입력 시 실시간 필터링 함수
+    function filterBooks() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+      
+      const filtered = booksData.filter(book => 
+        book.title.toLowerCase().includes(keyword) || 
+        book.author.toLowerCase().includes(keyword)
+      );
+
+      renderList(filtered);
+    }
+
+    // 페이지 열릴 때 데이터 로드 실행
+    loadBooks();
+  </script>
+
+</body>
+</html>

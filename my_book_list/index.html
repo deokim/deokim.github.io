@@ -65,8 +65,8 @@
   <ul id="bookList" class="book-list"></ul>
 
   <script>
-    // 1. 대발님의 구글 시트 '웹에 게시' CSV URL을 아래에 넣어주세요.
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?gid=1428468593&single=true&output=csv';
+    // 1. 대발님의 구글 시트 '웹에 게시' CSV URL을 아래에 넣어주세요.    
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?output=tsv';
 
     let booksData = [];
 
@@ -77,7 +77,7 @@
         const data = await response.text();
         
         // CSV 줄바꿈 단위로 분리
-        const rows = data.split('\n');
+        const rows = data.split('\t');
         
         // CSV의 첫 줄(헤더)을 제외하고 데이터 추출
         booksData = rows.slice(1).map(row => {

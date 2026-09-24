@@ -1,0 +1,27 @@
+<h3>Google Sheet에서 리스트를 받아서 구입도서목록을 보여줌</h3>
+<h3>실시간 검색 기능(Search Bar)을 추가하여 제목, 저자, 출판사, 카테고리별로 즉시 검색</h3>
+<br>
+<li>카테고리 드롭다운 필터: [전체 보기 ▼] 누르면 국내도서>소설, 컴퓨터/IT, 외국도서 등 카테고리별로만 모아보기</li>
+<li>재고/대여 상태 필터: 구글 시트의 '재고상태'나 '독서 상태(읽는 중 / 완독)' 컬럼을 읽어와 완독한 책만 골라보기.</li>
+<li>정렬 기능: 출판일순, 가격순, 평점 높은 순 정렬</li>
+
+<!-- 상단 검색창 -->
+<input type="text" id="searchInput" onkeyup="searchBooks()" placeholder="책 제목이나 저자 검색...">
+
+<script>
+function searchBooks() {
+  // 1. 사용자가 입력한 검색어 가져오기
+  let filter = document.getElementById('searchInput').value.toLowerCase();
+  let bookCards = document.getElementsByClassName('book-card');
+
+  // 2. 검색어가 포함 안 된 책은 화면에서 숨기기
+  for (let i = 0; i < bookCards.length; i++) {
+    let title = bookCards[i].innerText.toLowerCase();
+    if (title.includes(filter)) {
+      bookCards[i].style.display = ""; // 보여주기
+    } else {
+      bookCards[i].style.display = "none"; // 숨기기
+    }
+  }
+}
+</script>

@@ -77,12 +77,12 @@
         const data = await response.text();
         
         // CSV 줄바꿈 단위로 분리
-        const rows = data.split('\t');
+        const rows = data.split('\n');
         
         // CSV의 첫 줄(헤더)을 제외하고 데이터 추출
         booksData = rows.slice(1).map(row => {
           // 단순 쉼표 분리 (추후 따옴표 처리 필요시 파싱 개선)
-          const cols = row.split(',');
+          const cols = row.split('\t');
           return {
             title: cols[2] ? cols[2].trim() : '',
             author: cols[3] ? cols[3].trim() : '',

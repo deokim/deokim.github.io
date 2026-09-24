@@ -35,21 +35,71 @@
     .book-list {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
+    
+    /* 리스트 항목 레이아웃 (표지 이미지 + 도서 정보) */
     .book-item {
-      padding: 15px 20px;
+      padding: 14px 10px;
       border-bottom: 1px solid #eee;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 16px;
+    }
+    
+    /* 표지 이미지 스타일 */
+    .book-cover {
+      width: 50px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+    .book-cover-placeholder {
+      width: 50px;
+      height: 70px;
+      background-color: #f1f3f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    /* 도서 정보 영역 */
+    .book-info {
+      flex: 1;
+      min-width: 0; /* flex 자식의 overflow 방지 */
     }
     .book-title {
-      font-weight: bold;
+      font-weight: 700;
       font-size: 16px;
+      line-height: 1.4;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+      word-break: keep-all;
+    }
+    
+    /* 저자 & 출판사 한 줄/줄바꿈 배치를 위한 메타 영역 */
+    .book-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      font-size: 14px;
     }
     .book-author {
       color: #555;
-      font-size: 14px;
+    }
+    .book-publisher {
+      font-size: 12px;
+      color: #666;
+      background-color: #f1f3f4;
+      padding: 2px 8px;
+      border-radius: 4px;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -58,77 +108,88 @@
   <div class="search-container">
     <h2>📚 BookShelf of deokim</h2>
     <!-- 구글 스타일 미니멀 검색창 -->
-    <input type="text" id="searchInput" class="search-input" placeholder="책 제목, 저자 검색..." oninput="filterBooks()">
+    <input type="text" id="searchInput" class="search-input" placeholder="책 제목, 저자, 출판사 검색..." oninput="filterBooks()">
   </div>
 
   <div id="status" class="status">도서 데이터를 불러오는 중...</div>
   <ul id="bookList" class="book-list"></ul>
 
   <script>
-    // 1. 대발님의 구글 시트 '웹에 게시' CSV URL을 아래에 넣어주세요.    
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?gid=1428468593&single=true&output=tsv';
+    // 대발님의 구글 시트 '웹에 게시' TSV URL
+    const TSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?gid=1428468593&single=true&output=tsv';
 
     let booksData = [];
 
-    // 2. CSV 데이터를 받아와서 메모리에 저장하는 함수
+    // TSV 데이터를 받아와서 메모리에 저장하는 함수
     async function loadBooks() {
       try {
-        const response = await fetch(CSV_URL);
+        const response = await fetch(TSV_URL);
         const data = await response.text();
         
-        // CSV 줄바꿈 단위로 분리
+        // TSV 줄바꿈 단위로 분리
         const rows = data.split('\n');
         
-        // CSV의 첫 줄(헤더)을 제외하고 데이터 추출
+        // 헤더 제외 후 데이터 추출 (인덱스: C열=2 제목, D열=3 저자, E열=4 출판사, G열=6 표지이미지)
         booksData = rows.slice(1).map(row => {
-          // 단순 쉼표 분리 (추후 따옴표 처리 필요시 파싱 개선)
           const cols = row.split('\t');
           return {
             title: cols[2] ? cols[2].trim() : '',
             author: cols[3] ? cols[3].trim() : '',
-            publisher: cols[4] ? cols[4].trim() : ''
+            publisher: cols[4] ? cols[4].trim() : '',
+            coverImg: cols[6] ? cols[6].trim() : ''
           };
-        }).filter(book => book.title !== ''); // 빈 줄 제거
+        }).filter(book => book.title !== ''); // 제목 없는 데이터 제외
 
         document.getElementById('status').innerText = `총 ${booksData.length}권의 도서가 로드되었습니다.`;
         renderList(booksData);
       } catch (error) {
-        document.getElementById('status').innerText = '데이터를 불러오는데 실패했습니다. CSV URL을 확인해주세요.';
+        document.getElementById('status').innerText = '데이터를 불러오는데 실패했습니다. TSV URL을 확인해주세요.';
         console.error(error);
       }
     }
 
-    // 3. 화면에 도서 리스트를 출력하는 함수
+    // 화면에 도서 리스트를 출력하는 함수
     function renderList(list) {
       const ul = document.getElementById('bookList');
       ul.innerHTML = '';
 
       if (list.length === 0) {
-        ul.innerHTML = '<li style="text-align:center; color:#888;">검색 결과가 없습니다.</li>';
+        ul.innerHTML = '<li style="text-align:center; color:#888; padding:30px;">검색 결과가 없습니다.</li>';
         return;
       }
 
       list.forEach(book => {
         const li = document.createElement('li');
         li.className = 'book-item';
+        
+        // 표지 이미지 태그 생성 (URL 없거나 로드 실패 시 대체 아이콘 표시)
+        const imgHtml = book.coverImg 
+          ? `<img src="${book.coverImg}" alt="${book.title}" class="book-cover" onError="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div class="book-cover-placeholder" style="display:none;">📚</div>`
+          : `<div class="book-cover-placeholder">📚</div>`;
+
         li.innerHTML = `
-          <div>
+          ${imgHtml}
+          <div class="book-info">
             <div class="book-title">${book.title}</div>
-            <div class="book-author">${book.author}</div>
+            <div class="book-meta">
+              <span class="book-author">${book.author}</span>
+              ${book.publisher ? `<span class="book-publisher">${book.publisher}</span>` : ''}
+            </div>
           </div>
-          <div style="color: #888; font-size: 12px;">${book.publisher}</div>
         `;
         ul.appendChild(li);
       });
     }
 
-    // 4. 검색창 입력 시 실시간 필터링 함수
+    // 검색창 입력 시 실시간 필터링 함수 (제목, 저자, 출판사 통합 검색)
     function filterBooks() {
       const keyword = document.getElementById('searchInput').value.toLowerCase();
       
       const filtered = booksData.filter(book => 
         book.title.toLowerCase().includes(keyword) || 
-        book.author.toLowerCase().includes(keyword)
+        book.author.toLowerCase().includes(keyword) ||
+        book.publisher.toLowerCase().includes(keyword)
       );
 
       renderList(filtered);

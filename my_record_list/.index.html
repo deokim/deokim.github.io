@@ -18,3 +18,434 @@
   3. 모바일 화면에 맞게 검색창 재조정 등
   ==================================================
 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Archive</title>
+  <!-- 구글 폰트 적용 (Lora & Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,400&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Global Styles */
+    :root {
+      --bg-color: #f8f6f0;
+      --card-bg: #ffffff;
+      --text-primary: #222222;
+      --text-secondary: #666666;
+      --accent-color: #4a3e3d;
+      --border-color: #e2ded4;
+      --badge-bg: #efece6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      font-family: 'Noto Sans KR', sans-serif;
+      padding: 40px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-family: 'Lora', serif;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-bottom: 8px;
+    }
+
+    /* Search Bar */
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 20px auto;
+    }
+
+    .search-form {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 48px 14px 20px;
+      font-size: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      outline: none;
+      background-color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: #999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .search-btn {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: #777;
+    }
+
+    /* Genre Tabs */
+    .genre-tabs {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .genre-tab {
+      padding: 6px 16px;
+      border-radius: 20px;
+      background-color: #eae6de;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .genre-tab:hover {
+      background-color: var(--border-color);
+    }
+
+    .genre-tab.active {
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+
+    /* Result Status */
+    .result-status {
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+
+    /* Grid Layout */
+    .album-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    /* Album Card */
+    .album-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .album-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .cover-wrapper {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background-color: #eee;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background-color: var(--badge-bg);
+      color: #555;
+      font-weight: 500;
+    }
+
+    .badge.format {
+      font-weight: 700;
+      background-color: #e3ded5;
+    }
+
+    .album-title {
+      font-family: 'Lora', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .artist-name {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .meta-info {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid #f0ede6;
+      font-size: 0.82rem;
+      color: #888;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .discogs-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+
+    .discogs-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Mobile Friendly Adjustment */
+    @media (max-width: 600px) {
+      body {
+        padding: 24px 12px;
+      }
+      header h1 {
+        font-size: 1.8rem;
+      }
+      .album-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Music Archive</h1>
+    </header>
+
+    <!-- 2) 검색 영역 (엔터키 제출 방식 & 모바일 화면 폭 분출 방지) -->
+    <div class="search-container">
+      <form class="search-form" id="searchForm">
+        <input type="text" id="searchInput" class="search-input" placeholder="앨범명, 아티스트, 레이블 검색..." autocomplete="off">
+        <button type="submit" class="search-btn">🔍</button>
+      </form>
+    </div>
+
+    <!-- 퀵 장르 필터 (링크 구조) -->
+    <div class="genre-tabs" id="genreTabs">
+      <a href="#all" class="genre-tab" data-genre="all">All</a>
+      <a href="#classical" class="genre-tab" data-genre="classical">Classical</a>
+      <a href="#jazz" class="genre-tab" data-genre="jazz">Jazz</a>
+      <a href="#rock" class="genre-tab" data-genre="rock">Rock</a>
+      <a href="#pop" class="genre-tab" data-genre="pop">Pop</a>
+    </div>
+
+    <!-- 4) 검색/필터 결과 건수 안내 -->
+    <div class="result-status" id="resultStatus">
+      음반 목록을 로딩 중입니다...
+    </div>
+
+    <!-- 5) 앨범 그리드 레이아웃 -->
+    <div class="album-grid" id="albumGrid"></div>
+  </div>
+
+  <script>
+    // ⚠️ 대발님의 구글 시트 웹게시 (TSV URL) 주소를 아래에 집어넣어주세요!
+    const GOOGLE_SHEET_TSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTIXxlq9bnySXzdNUz-sC2z-N5tvRP4oiw_paiKLXqcv9UfBhFBoS7rrrbyg49owYWBlHE-R77q0t_C/pub?gid=1662343739&single=true&output=tsv';
+
+    let allAlbums = [];
+    let currentGenre = 'classical'; // 기본 필터: Classical
+
+    // TSV 파싱 함수 (탭 구분 처리)
+    function parseTSV(tsvText) {
+      const lines = tsvText.trim().split('\n');
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].split('\t').map(h => h.trim().toLowerCase());
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const currentline = lines[i].split('\t');
+        if (currentline.length < headers.length) continue;
+
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) {
+          obj[headers[j]] = currentline[j] ? currentline[j].trim() : '';
+        }
+        data.push(obj);
+      }
+      return data;
+    }
+
+    // 데이터 로드
+    async function fetchAlbumData() {
+      try {
+        const response = await fetch(GOOGLE_SHEET_TSV_URL);
+        const tsvText = await response.text();
+        allAlbums = parseTSV(tsvText);
+        
+        // URL Hash 기반 초기 필터 설정 (없으면 classical)
+        handleHashChange();
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+        document.getElementById('resultStatus').innerText = '데이터를 불러오는 데 실패했습니다.';
+      }
+    }
+
+    // URL Hash 변경 처리 (장르 필터링)
+    function handleHashChange() {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      currentGenre = hash || 'classical'; // 기본값 classical
+
+      // 탭 활성화 UI 처리
+      document.querySelectorAll('.genre-tab').forEach(tab => {
+        if (tab.dataset.genre === currentGenre) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+
+      // 검색창 초기화 후 필터링 적용
+      document.getElementById('searchInput').value = '';
+      applyFilter();
+    }
+
+    // 카드 렌더링 및 필터링
+    function applyFilter(searchQuery = '') {
+      let filtered = allAlbums;
+
+      // 1) 장르 필터
+      if (currentGenre !== 'all') {
+        filtered = filtered.filter(item => {
+          const genreText = (item.genres || '') + ' ' + (item.styles || '');
+          return genreText.toLowerCase().includes(currentGenre);
+        });
+      }
+
+      // 2) 검색어 필터 (엔터 입력 시 작동)
+      if (searchQuery.trim() !== '') {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(item => {
+          return (item.album_title || '').toLowerCase().includes(q) ||
+                 (item.artist || '').toLowerCase().includes(q) ||
+                 (item.label || '').toLowerCase().includes(q);
+        });
+      }
+
+      // 결과 건수 업데이트
+      const statusText = searchQuery.trim() !== ''
+        ? `'${searchQuery}' 검색 결과 총 ${filtered.length}건의 음반이 있습니다.`
+        : `'${currentGenre.toUpperCase()}' 장르 음반 총 ${filtered.length}건이 로드되었습니다.`;
+      
+      document.getElementById('resultStatus').innerText = statusText;
+
+      // 화면에 출력
+      renderGrid(filtered);
+    }
+
+    // 그리드 카드 렌더링
+    function renderGrid(albums) {
+      const grid = document.getElementById('albumGrid');
+      grid.innerHTML = '';
+
+      albums.forEach(album => {
+        // 장르/스타일 멀티 태그 분리 처리
+        const genreList = (album.genres || '').split(',').map(g => g.trim()).filter(g => g);
+        
+        let badgesHTML = '';
+        if (album.format) {
+          badgesHTML += `<span class="badge format">${album.format}</span>`;
+        }
+        genreList.forEach(g => {
+          badgesHTML += `<span class="badge">${g}</span>`;
+        });
+
+        // 템플릿 카드 생성
+        const card = document.createElement('div');
+        card.className = 'album-card';
+        card.innerHTML = `
+          <div class="cover-wrapper">
+            <img class="cover-img" src="${album.cover_url || 'https://via.placeholder.com/300?text=No+Cover'}" alt="${album.album_title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300?text=No+Image';">
+          </div>
+          <div class="card-content">
+            <div class="badges">${badgesHTML}</div>
+            <div class="album-title">${album.album_title || 'Untitled'}</div>
+            <div class="artist-name">${album.artist || 'Unknown Artist'}</div>
+            <div class="meta-info">
+              <span>${album.year && album.year !== '0' ? album.year + ' · ' : ''}${album.label || ''}</span>
+              ${album.discogs_url ? `<a href="${album.discogs_url}" target="_blank" class="discogs-link">Discogs ↗</a>` : ''}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // 이벤트 리스너 설정
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault(); // 엔터 입력 시 페이지 리로드 방지
+      const query = document.getElementById('searchInput').value;
+      applyFilter(query);
+    });
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    // 실행
+    fetchAlbumData();
+  </script>
+</body>
+</html>

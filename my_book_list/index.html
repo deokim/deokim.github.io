@@ -55,7 +55,7 @@
     .search-input {
       flex: 1;
       padding: 12px 16px;
-      font-size: 15px;
+      font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 8px;
       outline: none;
@@ -163,12 +163,17 @@
       color: #495057;
       padding: 3px 8px;
       border-radius: 4px;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-all; /* 모바일에서 텍스트가 넘치면 자연스럽게 줄바꿈 */
+      display: inline-block; /* 배지 모양 유지 */
+
     }
     .badge-category {
       background-color: #e7f5ff;
       color: #1971c2;
       font-weight: 600;
+      white-space: normal;  /* 긴 카테고리명 줄바꿈 허용 */
+      line-height: 1.4;
     }
   </style>
 </head>

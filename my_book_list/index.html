@@ -10,6 +10,7 @@
   2. 데이터베이스(DB) 통합 및 이전:
      - 기존 ISBN 자동 수집 데이터 + 수작업 입력 통합 DB로 시트 교체 작업 진행 예정
      - TSV 파싱 컬럼 인덱스 재정렬 필요
+     - Master DB 일자에 따른 도서목록의 현 Status의 일자 정보 추가
 
   3. 검색 후, 몇 권 검색되었는지 표시, 
      - 검색 후 엔터 필요? 현재는 입력 문자에 따라 검색결과가 달라짐. 모바일은 엔터필
@@ -24,176 +25,262 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>개인 서재 검색</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 800px;
-      margin: 50px auto;
-      padding: 0 20px;
-      color: #333;
+    * {
+      box-sizing: border-box;
     }
-    .search-container {
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      color: #222;
+      background-color: #f8f9fa;
+    }
+    
+    .header-title {
       text-align: center;
-      margin-bottom: 30px;
+      margin: 20px 0 15px 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    /* 검색 영역 (버튼 클릭 & 엔터 적용) */
+    .search-container {
+      display: flex;
+      gap: 8px;
+      max-width: 600px;
+      margin: 0 auto 16px auto;
+      width: 100%;
     }
     .search-input {
-      width: 100%;
-      max-width: 500px;
-      padding: 14px 20px;
-      font-size: 16px;
-      border: 1px solid #dfe1e5;
-      border-radius: 24px;
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
       outline: none;
-      box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+      background: #fff;
     }
+    .search-input:focus {
+      border-color: #333;
+    }
+    .search-btn {
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background-color: #333;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .search-btn:hover {
+      background-color: #555;
+    }
+
+    /* 검색 결과 건수 / 상태 표시 */
     .status {
       text-align: center;
       color: #666;
       font-size: 14px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      font-weight: 500;
     }
+
+    /* 리스트 스타일 (음반 목록 반응형과 동일 구조) */
     .book-list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
-    
-    /* 리스트 항목 레이아웃 (표지 이미지 + 도서 정보) */
     .book-item {
-      padding: 14px 10px;
-      border-bottom: 1px solid #eee;
+      background: #fff;
+      padding: 14px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       display: flex;
-      align-items: center;
-      gap: 16px;
+      gap: 14px;
+      align-items: flex-start;
+      width: 100%;
     }
     
-    /* 표지 이미지 스타일 */
+    /* 표지 이미지 (모바일 왜곡 및 넘침 방지) */
     .book-cover {
-      width: 50px;
-      height: 70px;
+      width: 60px;
+      height: 85px;
       object-fit: cover;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: 1px solid #eee;
       flex-shrink: 0;
     }
     .book-cover-placeholder {
-      width: 50px;
-      height: 70px;
-      background-color: #f1f3f4;
+      width: 60px;
+      height: 85px;
+      background-color: #e9ecef;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      font-size: 20px;
+      font-size: 22px;
       flex-shrink: 0;
     }
 
-    /* 도서 정보 영역 */
+    /* 도서 상세 메타 정보 */
     .book-info {
       flex: 1;
-      min-width: 0; /* flex 자식의 overflow 방지 */
+      min-width: 0; /* flex 넘침 방지 */
     }
     .book-title {
       font-weight: 700;
       font-size: 16px;
-      line-height: 1.4;
-      color: #1a1a1a;
+      line-height: 1.35;
+      color: #111;
       margin-bottom: 6px;
-      word-break: keep-all;
+      word-break: break-word;
     }
-    
-    /* 저자 & 출판사 한 줄/줄바꿈 배치를 위한 메타 영역 */
-    .book-meta {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px 10px;
+    .book-author-pub {
       font-size: 14px;
-    }
-    .book-author {
-      color: #555;
+      color: #444;
+      margin-bottom: 8px;
+      line-height: 1.4;
+      word-break: break-word;
     }
     .book-publisher {
-      font-size: 12px;
       color: #666;
-      background-color: #f1f3f4;
-      padding: 2px 8px;
+    }
+
+    /* 하단 태그/세부 정보 (출간일, 페이지수, 언어, 분류) */
+    .book-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .badge {
+      background-color: #f1f3f5;
+      color: #495057;
+      padding: 3px 8px;
       border-radius: 4px;
-      word-break: break-word;
+      white-space: nowrap;
+    }
+    .badge-category {
+      background-color: #e7f5ff;
+      color: #1971c2;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
 
+  <h1 class="header-title">
+      <a href="./index.html">BookShelf of Deokim</a>
+  </h1>
+   
+
+  <!-- 검색 영역 -->
   <div class="search-container">
-    <h2>📚 BookShelf of deokim</h2>
-    <!-- 구글 스타일 미니멀 검색창 -->
-    <input type="text" id="searchInput" class="search-input" placeholder="책 제목, 저자, 출판사 검색..." oninput="filterBooks()">
+    <input type="text" id="searchInput" class="search-input" placeholder="제목, 저자, 출판사, 분류 검색..." onkeydown="handleKeyDown(event)">
+    <button class="search-btn" onclick="executeSearch()">검색</button>
   </div>
 
   <div id="status" class="status">도서 데이터를 불러오는 중...</div>
   <ul id="bookList" class="book-list"></ul>
 
   <script>
-    // 대발님의 구글 시트 '웹에 게시' TSV URL
-    const TSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpaWjIsN-7_gcihxEIlzp7UdSkx7q_G_6kKJaJWSG9DP0HdH7HFLe5bxnd-NGz5usX9wBmXNcgNvBV/pub?gid=1428468593&single=true&output=tsv';
+    // 동일 폴더 내 Book_Master.tsv 호스팅 파일 참조
+    const TSV_URL = './Book_Master.tsv';
 
-    let booksData = [];
+    let allBooks = [];
 
-    // TSV 데이터를 받아와서 메모리에 저장하는 함수
+    // TSV 데이터 로드 및 헤더 기반 동적 파싱
     async function loadBooks() {
       try {
         const response = await fetch(TSV_URL);
-        const data = await response.text();
+        if (!response.ok) throw new Error('파일을 불러올 수 없습니다.');
         
-        // TSV 줄바꿈 단위로 분리
-        const rows = data.split('\n');
+        const text = await response.text();
+        const rows = text.split('\n').map(r => r.trim()).filter(r => r.length > 0);
         
-        // 헤더 제외 후 데이터 추출 (인덱스: C열=2 제목, D열=3 저자, E열=4 출판사, G열=6 표지이미지)
-        booksData = rows.slice(1).map(row => {
-          const cols = row.split('\t');
-          return {
-            title: cols[2] ? cols[2].trim() : '',
-            author: cols[3] ? cols[3].trim() : '',
-            publisher: cols[4] ? cols[4].trim() : '',
-            coverImg: cols[6] ? cols[6].trim() : ''
-          };
-        }).filter(book => book.title !== ''); // 제목 없는 데이터 제외
+        if (rows.length < 2) return;
 
-        document.getElementById('status').innerText = `총 ${booksData.length}권의 도서가 로드되었습니다.`;
-        renderList(booksData);
+        // 헤더 인덱스 매핑 (컬럼 순서 변경에 자동 대응)
+        const headers = rows[0].split('\t').map(h => h.trim());
+        const getIdx = (name) => headers.indexOf(name);
+
+        const idxTitle = getIdx('제목');
+        const idxAuthor = getIdx('저자');
+        const idxPublisher = getIdx('출판사');
+        const idxPubDate = getIdx('출판일');
+        const idxPage = getIdx('Page_Count');
+        const idxLang = getIdx('언어');
+        const idxClass = getIdx('Class');
+        const idxDivision = getIdx('Division');
+        const idxSubject = getIdx('Subject');
+        const idxCover = getIdx('Cover_Image');
+
+        allBooks = rows.slice(1).map(row => {
+          const cols = row.split('\t').map(c => c ? c.trim() : '');
+          return {
+            title: idxTitle !== -1 ? cols[idxTitle] : '',
+            author: idxAuthor !== -1 ? cols[idxAuthor] : '',
+            publisher: idxPublisher !== -1 ? cols[idxPublisher] : '',
+            pubDate: idxPubDate !== -1 ? cols[idxPubDate] : '',
+            pageCount: idxPage !== -1 ? cols[idxPage] : '',
+            language: idxLang !== -1 ? cols[idxLang] : '',
+            class: idxClass !== -1 ? cols[idxClass] : '',
+            division: idxDivision !== -1 ? cols[idxDivision] : '',
+            subject: idxSubject !== -1 ? cols[idxSubject] : '',
+            coverImg: idxCover !== -1 ? cols[idxCover] : ''
+          };
+        }).filter(b => b.title && b.title !== '❌ 검색 결과 없음');
+
+        document.getElementById('status').innerText = `총 ${allBooks.length}권의 도서가 목록에 있습니다.`;
+        renderList(allBooks);
       } catch (error) {
-        document.getElementById('status').innerText = '데이터를 불러오는데 실패했습니다. TSV URL을 확인해주세요.';
+        document.getElementById('status').innerText = '데이터를 불러오는데 실패했습니다. TSV 파일 경로를 확인해주세요.';
         console.error(error);
       }
     }
 
-    // 화면에 도서 리스트를 출력하는 함수
+    // 화면 출력 함수
     function renderList(list) {
       const ul = document.getElementById('bookList');
       ul.innerHTML = '';
 
       if (list.length === 0) {
-        ul.innerHTML = '<li style="text-align:center; color:#888; padding:30px;">검색 결과가 없습니다.</li>';
+        ul.innerHTML = '<li style="text-align:center; color:#888; padding:40px; background:#fff; border-radius:8px;">검색 결과가 없습니다.</li>';
         return;
       }
 
       list.forEach(book => {
         const li = document.createElement('li');
         li.className = 'book-item';
-        
-        // 표지 이미지 태그 생성 (URL 없거나 로드 실패 시 대체 아이콘 표시)
-        const imgHtml = book.coverImg 
+
+        // 표지 이미지 처리
+        const imgHtml = book.coverImg && book.coverImg.startsWith('http')
           ? `<img src="${book.coverImg}" alt="${book.title}" class="book-cover" onError="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div class="book-cover-placeholder" style="display:none;">📚</div>`
           : `<div class="book-cover-placeholder">📚</div>`;
+
+        // 분류(Class > Division > Subject) 조합
+        const categoryParts = [book.class, book.division, book.subject].filter(Boolean);
+        const categoryStr = categoryParts.join(' > ');
 
         li.innerHTML = `
           ${imgHtml}
           <div class="book-info">
             <div class="book-title">${book.title}</div>
-            <div class="book-meta">
-              <span class="book-author">${book.author}</span>
-              ${book.publisher ? `<span class="book-publisher">${book.publisher}</span>` : ''}
+            <div class="book-author-pub">
+              <span>${book.author}</span>
+              ${book.publisher ? `<span class="book-publisher"> · ${book.publisher}</span>` : ''}
+            </div>
+            <div class="book-details">
+              ${categoryStr ? `<span class="badge badge-category">${categoryStr}</span>` : ''}
+              ${book.pubDate ? `<span class="badge">📅 ${book.pubDate}</span>` : ''}
+              ${book.pageCount ? `<span class="badge">📄 ${book.pageCount}p</span>` : ''}
+              ${book.language ? `<span class="badge">🌐 ${book.language}</span>` : ''}
             </div>
           </div>
         `;
@@ -201,22 +288,38 @@
       });
     }
 
-    // 검색창 입력 시 실시간 필터링 함수 (제목, 저자, 출판사 통합 검색)
-    function filterBooks() {
-      const keyword = document.getElementById('searchInput').value.toLowerCase();
-      
-      const filtered = booksData.filter(book => 
-        book.title.toLowerCase().includes(keyword) || 
-        book.author.toLowerCase().includes(keyword) ||
-        book.publisher.toLowerCase().includes(keyword)
+    // 엔터키 처리
+    function handleKeyDown(event) {
+      if (event.key === 'Enter') {
+        executeSearch();
+      }
+    }
+
+    // 버튼 클릭 및 엔터 시 검색 실행
+    function executeSearch() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      if (!keyword) {
+        document.getElementById('status').innerText = `총 ${allBooks.length}권의 도서가 목록에 있습니다.`;
+        renderList(allBooks);
+        return;
+      }
+
+      const filtered = allBooks.filter(b => 
+        b.title.toLowerCase().includes(keyword) ||
+        b.author.toLowerCase().includes(keyword) ||
+        b.publisher.toLowerCase().includes(keyword) ||
+        b.class.toLowerCase().includes(keyword) ||
+        b.division.toLowerCase().includes(keyword) ||
+        b.subject.toLowerCase().includes(keyword)
       );
 
+      document.getElementById('status').innerText = `총 ${allBooks.length}권 중 ${filtered.length}권이 검색되었습니다.`;
       renderList(filtered);
     }
 
-    // 페이지 열릴 때 데이터 로드 실행
+    // 최초 실행
     loadBooks();
   </script>
-
 </body>
 </html>
